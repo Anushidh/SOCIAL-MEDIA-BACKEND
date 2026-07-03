@@ -165,6 +165,18 @@ export class UsersController {
     return this.usersService.search(query, page, limit);
   }
 
+  @Get('suggested')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get suggested users to follow (not already followed)' })
+  @ApiQuery({ name: 'limit', required: false })
+  getSuggested(
+    @CurrentUser() user: User,
+    @Query('limit') limit?: number,
+  ) {
+    return this.usersService.getSuggestedUsers(user.id, limit);
+  }
+
   @Get(':username')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

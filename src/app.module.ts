@@ -6,6 +6,7 @@ import { WinstonModule } from 'nest-winston';
 import { getDatabaseConfig } from './config/database.config';
 import { throttleConfig } from './config/throttle.config';
 import { loggerConfig } from './config/logger.config';
+import { RedisModule } from './redis/redis.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PostsModule } from './posts/posts.module';
@@ -29,6 +30,7 @@ import { MediaModule } from './media/media.module';
     }),
     ThrottlerModule.forRoot(throttleConfig),
     WinstonModule.forRoot(loggerConfig),
+    RedisModule,
     AuthModule,
     UsersModule,
     PostsModule,

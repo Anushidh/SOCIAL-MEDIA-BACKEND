@@ -41,6 +41,9 @@ export class User {
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
+  @Column({ name: 'is_email_verified', default: false })
+  isEmailVerified: boolean;
+
   @Column({ name: 'is_private', default: false })
   isPrivate: boolean;
 

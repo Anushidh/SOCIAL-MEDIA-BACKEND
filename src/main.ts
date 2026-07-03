@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import cookieParser from 'cookie-parser';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -18,6 +19,9 @@ async function bootstrap() {
 
   // Use Winston logger
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
+
+  // Cookie parser (needed for HttpOnly refresh token cookie)
+  app.use(cookieParser());
 
   // Global validation pipe
   app.useGlobalPipes(

@@ -53,6 +53,34 @@ export class EmailService {
     }
   }
 
+  async sendOtpEmail(
+    email: string,
+    username: string,
+    otp: string,
+  ): Promise<void> {
+    try {
+      await this.transporter.sendMail({
+        from: this.configService.get<string>('SMTP_FROM', '"Social Media App" <noreply@app.com>'),
+        to: email,
+        subject: 'Your verification code',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Welcome, ${username}!</h2>
+            <p>Use the code below to verify your email address. It expires in 10 minutes.</p>
+            <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; text-align: center;
+                        padding: 24px; background: #f3f4f6; border-radius: 8px; margin: 24px 0;">
+              ${otp}
+            </div>
+            <p style="color: #666;">If you didn't create an account, you can ignore this email.</p>
+          </div>
+        `,
+      });
+      this.logger.log(`OTP email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send OTP email to ${email}`, error);
+    }
+  }
+
   async sendPasswordResetEmail(
     email: string,
     username: string,

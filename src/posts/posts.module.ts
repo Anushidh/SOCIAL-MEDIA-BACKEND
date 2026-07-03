@@ -19,6 +19,7 @@ import { StoryView } from './entities/story-view.entity';
 import { Repost } from './entities/repost.entity';
 import { Report } from './entities/report.entity';
 import { Follow } from '../follows/entities/follow.entity';
+import { Like } from '../likes/entities/like.entity';
 import { User } from '../users/entities/user.entity';
 import { MediaModule } from '../media/media.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -34,6 +35,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       Repost,
       Report,
       Follow,
+      Like,
       User,
     ]),
     MediaModule,

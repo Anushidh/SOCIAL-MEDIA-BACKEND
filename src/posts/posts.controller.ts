@@ -112,10 +112,25 @@ export class PostsController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   getExplore(
+    @CurrentUser() user: User,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.postsService.getExplore(page, limit);
+    return this.postsService.getExplore(user.id, page, limit);
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Search posts by content' })
+  @ApiQuery({ name: 'q', required: true })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  searchPosts(
+    @CurrentUser() user: User,
+    @Query('q') q: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.postsService.searchPosts(q, user.id, page, limit);
   }
 
   @Get('bookmarks')
@@ -135,17 +150,18 @@ export class PostsController {
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
   getUserPosts(
+    @CurrentUser() user: User,
     @Param('userId', ParseUUIDPipe) userId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.postsService.getUserPosts(userId, page, limit);
+    return this.postsService.getUserPosts(userId, user.id, page, limit);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a post by ID with comments' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.postsService.findByIdWithComments(id);
+  findOne(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
+    return this.postsService.findByIdWithComments(id, user.id);
   }
 
   @Patch(':id')

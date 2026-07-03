@@ -123,6 +123,29 @@ export class UsersService {
     return new PaginatedResponseDto(users, total, page, limit);
   }
 
+  async getSuggestedUsers(currentUserId: string, limit = 5): Promise<PaginatedResponseDto<User>> {
+    // Return active users that the current user is NOT following
+    // Ordered by newest first so new members appear as suggestions
+    const users = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.isActive = true')
+      .andWhere('user.id != :currentUserId', { currentUserId })
+      .andWhere((qb) => {
+        const subQuery = qb
+          .subQuery()
+          .select('follow.followingId')
+          .from('follows', 'follow')
+          .where('follow.followerId = :currentUserId', { currentUserId })
+          .getQuery();
+        return `user.id NOT IN ${subQuery}`;
+      })
+      .orderBy('user.createdAt', 'DESC')
+      .take(limit)
+      .getMany();
+
+    return new PaginatedResponseDto(users, users.length, 1, limit);
+  }
+
   async deactivate(userId: string): Promise<void> {
     const user = await this.findById(userId);
     user.isActive = false;
