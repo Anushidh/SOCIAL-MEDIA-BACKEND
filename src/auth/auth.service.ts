@@ -148,7 +148,7 @@ export class AuthService {
     const { email, password } = loginDto;
 
     const user = await this.usersRepository.findOne({
-      where: { email, isActive: true },
+      where: { email },
     });
 
     if (!user || !user.password) {
@@ -162,6 +162,12 @@ export class AuthService {
 
     if (!user.isEmailVerified) {
       throw new UnauthorizedException('Please verify your email before logging in');
+    }
+
+    // Reactivate account if it was deactivated
+    if (!user.isActive) {
+      user.isActive = true;
+      await this.usersRepository.save(user);
     }
 
     return this.buildAuthResponse(user);

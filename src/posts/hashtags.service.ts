@@ -87,6 +87,7 @@ export class HashtagsService {
         name: normalizedName,
       })
       .leftJoinAndSelect('post.author', 'author')
+      .andWhere('author.isPrivate = :isPrivate', { isPrivate: false })
       .orderBy('post.createdAt', 'DESC');
 
     const total = await qb.getCount();

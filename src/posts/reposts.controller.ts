@@ -17,13 +17,13 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 
 @ApiTags('Reposts')
-@Controller('posts/:postId/reposts')
+@Controller('posts')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class RepostsController {
   constructor(private readonly repostsService: RepostsService) {}
 
-  @Post()
+  @Post(':postId/reposts')
   @ApiOperation({ summary: 'Repost/share a post' })
   repost(
     @Param('postId', ParseUUIDPipe) postId: string,
@@ -32,7 +32,7 @@ export class RepostsController {
     return this.repostsService.repost(user.id, postId);
   }
 
-  @Delete()
+  @Delete(':postId/reposts')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Remove repost' })
   removeRepost(
@@ -42,7 +42,7 @@ export class RepostsController {
     return this.repostsService.removeRepost(user.id, postId);
   }
 
-  @Get()
+  @Get(':postId/reposts')
   @ApiOperation({ summary: 'Get users who reposted' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
@@ -54,7 +54,7 @@ export class RepostsController {
     return this.repostsService.getRepostsByPost(postId, page, limit);
   }
 
-  @Get('status')
+  @Get(':postId/reposts/status')
   @ApiOperation({ summary: 'Check if current user reposted' })
   hasReposted(
     @Param('postId', ParseUUIDPipe) postId: string,

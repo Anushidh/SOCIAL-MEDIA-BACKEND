@@ -27,6 +27,7 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { PostsService } from './posts.service';
+import { RepostsService } from './reposts.service';
 import { CreatePostDto, UpdatePostDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -61,6 +62,7 @@ const imageFileFilter = (
 export class PostsController {
   constructor(
     private readonly postsService: PostsService,
+    private readonly repostsService: RepostsService,
     private readonly mediaService: MediaService,
   ) {}
 
@@ -156,6 +158,19 @@ export class PostsController {
     @Query('limit') limit?: number,
   ) {
     return this.postsService.getUserPosts(userId, user.id, page, limit);
+  }
+
+  @Get('user/:userId/reposts')
+  @ApiOperation({ summary: "Get posts a user has reposted (for their profile)" })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  getUserReposts(
+    @CurrentUser() viewer: User,
+    @Param('userId', ParseUUIDPipe) userId: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.repostsService.getUserReposts(userId, viewer.id, page, limit);
   }
 
   @Get(':id')

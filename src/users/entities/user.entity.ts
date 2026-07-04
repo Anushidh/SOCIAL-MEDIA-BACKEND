@@ -79,4 +79,8 @@ export class User {
 
   @OneToMany(() => Notification, (notification) => notification.recipient)
   notifications: Notification[];
+
+  // Dynamic properties attached at runtime
+  isFollowing?: boolean;
+  isRequested?: boolean;
 }

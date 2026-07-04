@@ -12,6 +12,7 @@ import { Repost } from './entities/repost.entity';
 import { Like } from '../likes/entities/like.entity';
 import { CreatePostDto, UpdatePostDto } from './dto';
 import { Follow } from '../follows/entities/follow.entity';
+import { User } from '../users/entities/user.entity';
 import { PaginatedResponseDto } from '../common/dto';
 import { HashtagsService } from './hashtags.service';
 import { MentionsService } from './mentions.service';
@@ -29,6 +30,8 @@ export class PostsService {
     private readonly repostsRepository: Repository<Repost>,
     @InjectRepository(Like)
     private readonly likesRepository: Repository<Like>,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
     private readonly hashtagsService: HashtagsService,
     private readonly mentionsService: MentionsService,
   ) {}
@@ -82,6 +85,12 @@ export class PostsService {
 
     if (!post) throw new NotFoundException('Post not found');
 
+    if (post.author.isPrivate && post.author.id !== userId) {
+      if (!userId) throw new ForbiddenException('This account is private');
+      const isFollowing = await this.followsRepository.findOne({ where: { followerId: userId, followingId: post.author.id }});
+      if (!isFollowing) throw new ForbiddenException('This account is private');
+    }
+
     if (userId) {
       const [posts] = await Promise.all([this.attachUserState([post], userId)]);
       return posts[0];
@@ -97,6 +106,12 @@ export class PostsService {
     });
 
     if (!post) throw new NotFoundException('Post not found');
+
+    if (post.author.isPrivate && post.author.id !== userId) {
+      if (!userId) throw new ForbiddenException('This account is private');
+      const isFollowing = await this.followsRepository.findOne({ where: { followerId: userId, followingId: post.author.id }});
+      if (!isFollowing) throw new ForbiddenException('This account is private');
+    }
 
     post.comments = post.comments.filter((c) => !c.parentId);
 
@@ -131,18 +146,30 @@ export class PostsService {
   }
 
   async getExplore(userId?: string, page = 1, limit = 20): Promise<PaginatedResponseDto<Post>> {
-    const [posts, total] = await this.postsRepository.findAndCount({
-      relations: ['author'],
-      order: { likesCount: 'DESC', createdAt: 'DESC' },
-      take: limit,
-      skip: (page - 1) * limit,
-    });
+    const qb = this.postsRepository.createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .where('author.isPrivate = :isPrivate', { isPrivate: false })
+      .orderBy('post.likesCount', 'DESC')
+      .addOrderBy('post.createdAt', 'DESC')
+      .take(limit)
+      .skip((page - 1) * limit);
+
+    const [posts, total] = await qb.getManyAndCount();
 
     const enriched = userId ? await this.attachUserState(posts, userId) : posts;
     return new PaginatedResponseDto(enriched, total, page, limit);
   }
 
   async getUserPosts(userId: string, viewerId?: string, page = 1, limit = 20): Promise<PaginatedResponseDto<Post>> {
+    const targetUser = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!targetUser) throw new NotFoundException('User not found');
+    
+    if (targetUser.isPrivate && viewerId !== userId) {
+      if (!viewerId) throw new ForbiddenException('This account is private');
+      const isFollowing = await this.followsRepository.findOne({ where: { followerId: viewerId, followingId: userId }});
+      if (!isFollowing) throw new ForbiddenException('This account is private');
+    }
+
     const [posts, total] = await this.postsRepository.findAndCount({
       where: { authorId: userId },
       relations: ['author'],
@@ -160,6 +187,7 @@ export class PostsService {
       .createQueryBuilder('post')
       .leftJoinAndSelect('post.author', 'author')
       .where('post.content ILIKE :query', { query: `%${query}%` })
+      .andWhere('author.isPrivate = :isPrivate', { isPrivate: false })
       .orderBy('post.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
@@ -187,6 +215,10 @@ export class PostsService {
   async bookmarkPost(userId: string, postId: string): Promise<Bookmark> {
     const post = await this.postsRepository.findOne({ where: { id: postId } });
     if (!post) throw new NotFoundException('Post not found');
+
+    if (post.authorId === userId) {
+      throw new ForbiddenException('You cannot bookmark your own post');
+    }
 
     const existing = await this.bookmarksRepository.findOne({ where: { userId, postId } });
     if (existing) throw new ConflictException('Post already bookmarked');

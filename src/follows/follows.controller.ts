@@ -60,10 +60,11 @@ export class FollowsController {
   @ApiQuery({ name: 'limit', required: false })
   getFollowers(
     @Param('userId', ParseUUIDPipe) userId: string,
+    @CurrentUser() viewer: User,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.followsService.getFollowers(userId, page, limit);
+    return this.followsService.getFollowers(userId, viewer.id, page, limit);
   }
 
   @Get(':userId/following')
@@ -72,10 +73,11 @@ export class FollowsController {
   @ApiQuery({ name: 'limit', required: false })
   getFollowing(
     @Param('userId', ParseUUIDPipe) userId: string,
+    @CurrentUser() viewer: User,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
   ) {
-    return this.followsService.getFollowing(userId, page, limit);
+    return this.followsService.getFollowing(userId, viewer.id, page, limit);
   }
 
   @Get(':userId/mutual-followers')
@@ -98,6 +100,39 @@ export class FollowsController {
     @CurrentUser() user: User,
   ) {
     return this.followsService.isFollowing(user.id, userId);
+  }
+
+  // ─── Follow Requests ───────────────────────────────────────────────────────
+
+  @Get('me/follow-requests')
+  @ApiOperation({ summary: 'Get list of follow requests directed to current user' })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  getFollowRequests(
+    @CurrentUser() user: User,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.followsService.getFollowRequests(user.id, page, limit);
+  }
+
+  @Post('follow-requests/:id/accept')
+  @ApiOperation({ summary: 'Accept a follow request' })
+  acceptFollowRequest(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.followsService.acceptFollowRequest(id, user.id);
+  }
+
+  @Post('follow-requests/:id/deny')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Deny a follow request' })
+  denyFollowRequest(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.followsService.denyFollowRequest(id, user.id);
   }
 
   // ─── Block / Unblock ───────────────────────────────────────────────────────
