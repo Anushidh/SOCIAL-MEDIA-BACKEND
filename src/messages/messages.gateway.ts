@@ -9,11 +9,12 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { MessagesService } from './messages.service';
 
 @WebSocketGateway({
   cors: {
-    origin: 'http://localhost:4200',
+    origin: process.env.CORS_ORIGIN,
     credentials: true,
   },
   namespace: '/chat',
@@ -29,14 +30,33 @@ export class MessagesGateway
   // Track online users: userId -> Set of socket IDs (supports multiple tabs)
   private onlineUsers = new Map<string, Set<string>>();
 
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(
+    private readonly messagesService: MessagesService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  private getUserId(client: Socket): string | null {
+    const token = client.handshake.auth?.token as string | undefined;
+    if (!token) return null;
+    try {
+      const payload = this.jwtService.verify<{ sub: string }>(token, {
+        secret: process.env.JWT_ACCESS_SECRET,
+      });
+      return payload.sub;
+    } catch {
+      return null;
+    }
+  }
 
   handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId as string;
+    const userId = this.getUserId(client);
     if (!userId) {
       client.disconnect();
       return;
     }
+
+    // Store verified userId on socket for later use
+    client.data.userId = userId;
 
     // Add socket to user's set
     if (!this.onlineUsers.has(userId)) {
@@ -53,7 +73,7 @@ export class MessagesGateway
   }
 
   handleDisconnect(client: Socket) {
-    const userId = client.handshake.query.userId as string;
+    const userId = client.data?.userId as string | undefined;
     if (!userId) return;
 
     const userSockets = this.onlineUsers.get(userId);
@@ -75,7 +95,7 @@ export class MessagesGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { content: string; conversationId: string },
   ) {
-    const userId = client.handshake.query.userId as string;
+    const userId = client.data?.userId as string;
 
     try {
       const message = await this.messagesService.sendMessage(userId, {
@@ -122,7 +142,7 @@ export class MessagesGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { conversationId: string },
   ) {
-    const userId = client.handshake.query.userId as string;
+    const userId = client.data?.userId as string;
     client.to(data.conversationId).emit('userTyping', {
       userId,
       conversationId: data.conversationId,
@@ -134,7 +154,7 @@ export class MessagesGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { conversationId: string },
   ) {
-    const userId = client.handshake.query.userId as string;
+    const userId = client.data?.userId as string;
     client.to(data.conversationId).emit('userStoppedTyping', {
       userId,
       conversationId: data.conversationId,
@@ -146,7 +166,7 @@ export class MessagesGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { conversationId: string },
   ) {
-    const userId = client.handshake.query.userId as string;
+    const userId = client.data?.userId as string;
 
     await this.messagesService.markAsRead(data.conversationId, userId);
 
@@ -161,7 +181,7 @@ export class MessagesGateway
   }
 
   @SubscribeMessage('getOnlineUsers')
-  handleGetOnlineUsers(@ConnectedSocket() client: Socket) {
+  handleGetOnlineUsers() {
     const onlineUserIds = [...this.onlineUsers.keys()];
     return { onlineUsers: onlineUserIds };
   }

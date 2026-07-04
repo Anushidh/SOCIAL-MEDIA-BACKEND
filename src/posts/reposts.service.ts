@@ -5,11 +5,13 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Repost } from './entities/repost.entity';
 import { Post } from './entities/post.entity';
+import { Bookmark } from './entities/bookmark.entity';
 import { User } from '../users/entities/user.entity';
 import { Follow } from '../follows/entities/follow.entity';
+import { Like } from '../likes/entities/like.entity';
 import { PaginatedResponseDto } from '../common/dto';
 
 @Injectable()
@@ -23,6 +25,10 @@ export class RepostsService {
     private readonly usersRepository: Repository<User>,
     @InjectRepository(Follow)
     private readonly followsRepository: Repository<Follow>,
+    @InjectRepository(Like)
+    private readonly likesRepository: Repository<Like>,
+    @InjectRepository(Bookmark)
+    private readonly bookmarksRepository: Repository<Bookmark>,
   ) {}
 
   async repost(userId: string, postId: string): Promise<Repost> {
@@ -108,27 +114,25 @@ export class RepostsService {
     const posts = reposts.map((r) => r.post).filter(Boolean);
 
     if (viewerId && posts.length) {
-      // Reuse PostsService.attachUserState — but we only have the repository here,
-      // so inline the same logic to avoid a circular dependency
       const postIds = posts.map((p) => p.id);
       const [likes, bookmarks, reposteds] = await Promise.all([
-        this.repostsRepository.manager
-          .getRepository('likes')
-          .find({ where: { userId: viewerId }, select: ['postId'] })
-          .catch(() => []),
-        this.repostsRepository.manager
-          .getRepository('bookmarks')
-          .find({ where: { userId: viewerId }, select: ['postId'] })
-          .catch(() => []),
+        this.likesRepository.find({
+          where: { userId: viewerId, postId: In(postIds) },
+          select: ['postId'],
+        }),
+        this.bookmarksRepository.find({
+          where: { userId: viewerId, postId: In(postIds) },
+          select: ['postId'],
+        }),
         this.repostsRepository.find({
-          where: { userId: viewerId },
+          where: { userId: viewerId, postId: In(postIds) },
           select: ['postId'],
         }),
       ]);
 
-      const likedIds = new Set((likes as any[]).filter((l) => postIds.includes(l.postId)).map((l) => l.postId));
-      const bookmarkedIds = new Set((bookmarks as any[]).filter((b) => postIds.includes(b.postId)).map((b) => b.postId));
-      const repostedIds = new Set(reposteds.filter((r) => postIds.includes(r.postId)).map((r) => r.postId));
+      const likedIds = new Set(likes.map((l) => l.postId));
+      const bookmarkedIds = new Set(bookmarks.map((b) => b.postId));
+      const repostedIds = new Set(reposteds.map((r) => r.postId));
 
       const enriched = posts.map((p) => ({
         ...p,

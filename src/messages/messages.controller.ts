@@ -52,6 +52,12 @@ export class MessagesController {
     return this.messagesService.getUserConversations(user.id, page, limit);
   }
 
+  @Get('unread-count')
+  @ApiOperation({ summary: 'Get total unread message count across all conversations' })
+  getUnreadCount(@CurrentUser() user: User) {
+    return this.messagesService.getUnreadCount(user.id);
+  }
+
   @Get('conversations/:conversationId')
   @ApiOperation({ summary: 'Get messages in a conversation (paginated)' })
   @ApiQuery({ name: 'page', required: false })
@@ -104,11 +110,5 @@ export class MessagesController {
     @CurrentUser() user: User,
   ) {
     return this.messagesService.deleteMessage(messageId, user.id);
-  }
-
-  @Get('unread-count')
-  @ApiOperation({ summary: 'Get total unread message count across all conversations' })
-  getUnreadCount(@CurrentUser() user: User) {
-    return this.messagesService.getUnreadCount(user.id);
   }
 }

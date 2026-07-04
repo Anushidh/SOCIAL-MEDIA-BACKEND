@@ -198,14 +198,14 @@ export class PostsService {
   }
 
   async update(id: string, userId: string, updatePostDto: UpdatePostDto): Promise<Post> {
-    const post = await this.findById(id);
+    const post = await this.findById(id, userId);
     if (post.authorId !== userId) throw new ForbiddenException('You can only edit your own posts');
     Object.assign(post, updatePostDto);
     return this.postsRepository.save(post);
   }
 
   async remove(id: string, userId: string): Promise<void> {
-    const post = await this.findById(id);
+    const post = await this.findById(id, userId);
     if (post.authorId !== userId) throw new ForbiddenException('You can only delete your own posts');
     await this.postsRepository.remove(post);
   }

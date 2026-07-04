@@ -86,14 +86,6 @@ export class MessagesService {
           relations: ['sender'],
         });
 
-        const unreadCount = await this.messagesRepository.count({
-          where: {
-            conversationId: conv.id,
-            isRead: false,
-            senderId: undefined, // will be overridden below
-          },
-        });
-
         // Count messages not sent by current user and not read
         const unread = await this.messagesRepository
           .createQueryBuilder('message')

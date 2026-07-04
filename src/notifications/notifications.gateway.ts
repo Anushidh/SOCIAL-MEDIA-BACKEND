@@ -6,11 +6,12 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Notification } from './entities/notification.entity';
 
 @WebSocketGateway({
   cors: {
-    origin: 'http://localhost:4200',
+    origin: process.env.CORS_ORIGIN,
     credentials: true,
   },
   namespace: '/notifications',
@@ -26,12 +27,30 @@ export class NotificationsGateway
   // Map userId -> Set of socket IDs
   private connectedUsers = new Map<string, Set<string>>();
 
+  constructor(private readonly jwtService: JwtService) {}
+
+  private getUserId(client: Socket): string | null {
+    const token = client.handshake.auth?.token as string | undefined;
+    if (!token) return null;
+    try {
+      const payload = this.jwtService.verify<{ sub: string }>(token, {
+        secret: process.env.JWT_ACCESS_SECRET,
+      });
+      return payload.sub;
+    } catch {
+      return null;
+    }
+  }
+
   handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId as string;
+    const userId = this.getUserId(client);
     if (!userId) {
       client.disconnect();
       return;
     }
+
+    // Store verified userId on socket for later use
+    client.data.userId = userId;
 
     if (!this.connectedUsers.has(userId)) {
       this.connectedUsers.set(userId, new Set());
@@ -45,7 +64,7 @@ export class NotificationsGateway
   }
 
   handleDisconnect(client: Socket) {
-    const userId = client.handshake.query.userId as string;
+    const userId = client.data?.userId as string | undefined;
     if (!userId) return;
 
     const userSockets = this.connectedUsers.get(userId);
