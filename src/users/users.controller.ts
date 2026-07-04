@@ -15,9 +15,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { memoryStorage } from 'multer';
 import {
   ApiTags,
   ApiOperation,
@@ -33,14 +31,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { MediaService } from '../media/media.service';
 import { User } from './entities/user.entity';
-
-const avatarStorage = diskStorage({
-  destination: './uploads/avatars',
-  filename: (_req, file, callback) => {
-    const uniqueName = `avatar_${uuidv4()}${extname(file.originalname)}`;
-    callback(null, uniqueName);
-  },
-});
 
 const avatarFileFilter = (
   _req: any,
@@ -94,7 +84,7 @@ export class UsersController {
   })
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: avatarStorage,
+      storage: memoryStorage(),
       fileFilter: avatarFileFilter,
       limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max for avatars
     }),
@@ -107,7 +97,7 @@ export class UsersController {
       throw new BadRequestException('No file provided');
     }
 
-    const avatarUrl = this.mediaService.getFileUrl(`avatars/${file.filename}`);
+    const avatarUrl = await this.mediaService.uploadFile(file, 'avatars');
     const updatedUser = await this.usersService.updateAvatar(user.id, avatarUrl);
 
     return { avatarUrl: updatedUser.avatarUrl };

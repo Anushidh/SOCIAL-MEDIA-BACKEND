@@ -1,11 +1,8 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as path from 'path';
-import * as fs from 'fs';
+import { StorageFactoryService } from './storage/storage-factory.service';
 
 @Injectable()
 export class MediaService {
-  private readonly uploadDest: string;
   private readonly allowedMimeTypes = [
     'image/jpeg',
     'image/png',
@@ -13,19 +10,7 @@ export class MediaService {
     'image/webp',
   ];
 
-  constructor(private readonly configService: ConfigService) {
-    this.uploadDest = this.configService.get<string>(
-      'UPLOAD_DEST',
-      './uploads',
-    );
-    this.ensureUploadDirectory();
-  }
-
-  private ensureUploadDirectory(): void {
-    if (!fs.existsSync(this.uploadDest)) {
-      fs.mkdirSync(this.uploadDest, { recursive: true });
-    }
-  }
+  constructor(private readonly storageFactory: StorageFactoryService) {}
 
   validateFile(file: Express.Multer.File): void {
     if (!this.allowedMimeTypes.includes(file.mimetype)) {
@@ -35,18 +20,18 @@ export class MediaService {
     }
   }
 
-  getFileUrl(filename: string): string {
-    const appUrl = this.configService.get<string>(
-      'APP_URL',
-      'http://localhost:3000',
-    );
-    return `${appUrl}/uploads/${filename}`;
+  async uploadFile(file: Express.Multer.File, folder: string): Promise<string> {
+    this.validateFile(file);
+    const storage = this.storageFactory.getStorageService();
+    return storage.upload(file, folder);
   }
 
-  async deleteFile(filename: string): Promise<void> {
-    const filePath = path.join(this.uploadDest, filename);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+  async uploadFiles(files: Express.Multer.File[], folder: string): Promise<string[]> {
+    return Promise.all(files.map((file) => this.uploadFile(file, folder)));
+  }
+
+  async deleteFile(fileUrl: string): Promise<void> {
+    const storage = this.storageFactory.getStorageService();
+    return storage.delete(fileUrl);
   }
 }

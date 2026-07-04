@@ -14,9 +14,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { memoryStorage } from 'multer';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { StoriesService } from './stories.service';
 import { CreateStoryDto } from './dto';
@@ -24,14 +22,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { MediaService } from '../media/media.service';
 import { User } from '../users/entities/user.entity';
-
-const storyStorage = diskStorage({
-  destination: './uploads/stories',
-  filename: (_req, file, callback) => {
-    const uniqueName = `story_${uuidv4()}${extname(file.originalname)}`;
-    callback(null, uniqueName);
-  },
-});
 
 @ApiTags('Stories')
 @Controller('stories')
@@ -54,7 +44,7 @@ export class StoriesController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('image', {
-      storage: storyStorage,
+      storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
@@ -67,7 +57,7 @@ export class StoriesController {
       throw new BadRequestException('Image is required for a story');
     }
 
-    const imageUrl = this.mediaService.getFileUrl(`stories/${file.filename}`);
+    const imageUrl = await this.mediaService.uploadFile(file, 'stories');
     return this.storiesService.create(user.id, {
       imageUrl,
       caption: body.caption,

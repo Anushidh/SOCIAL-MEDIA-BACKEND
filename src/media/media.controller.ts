@@ -7,32 +7,27 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
-import {
-  FileInterceptor,
-  FilesInterceptor,
-} from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { MediaService } from './media.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-const storage = diskStorage({
-  destination: './uploads',
-  filename: (_req, file, callback) => {
-    const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
-    callback(null, uniqueName);
-  },
-});
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 const fileFilter = (_req: any, file: Express.Multer.File, callback: any) => {
-  const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  if (allowedMimes.includes(file.mimetype)) {
+  if (ALLOWED_MIMES.includes(file.mimetype)) {
     callback(null, true);
   } else {
     callback(new BadRequestException('Invalid file type'), false);
   }
+};
+
+const multerOptions = {
+  storage: memoryStorage(),
+  fileFilter,
+  limits: { fileSize: MAX_FILE_SIZE },
 };
 
 @ApiTags('Media')
@@ -45,40 +40,39 @@ export class MediaController {
   @Post('upload')
   @ApiOperation({ summary: 'Upload a single image' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(
-    FileInterceptor('file', { storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } }),
-  )
-  uploadFile(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('No file provided');
-    }
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(FileInterceptor('file', multerOptions))
+  async uploadFile(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('No file provided');
 
-    return {
-      url: this.mediaService.getFileUrl(file.filename),
-      filename: file.filename,
-      originalName: file.originalname,
-      size: file.size,
-      mimeType: file.mimetype,
-    };
+    const url = await this.mediaService.uploadFile(file, 'general');
+    return { url, originalName: file.originalname, size: file.size, mimeType: file.mimetype };
   }
 
   @Post('upload-multiple')
   @ApiOperation({ summary: 'Upload multiple images (max 10)' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(
-    FilesInterceptor('files', 10, { storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } }),
-  )
-  uploadFiles(@UploadedFiles() files: Express.Multer.File[]) {
-    if (!files || files.length === 0) {
-      throw new BadRequestException('No files provided');
-    }
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { files: { type: 'array', items: { type: 'string', format: 'binary' } } },
+    },
+  })
+  @UseInterceptors(FilesInterceptor('files', 10, multerOptions))
+  async uploadFiles(@UploadedFiles() files: Express.Multer.File[]) {
+    if (!files || files.length === 0) throw new BadRequestException('No files provided');
 
-    return files.map((file) => ({
-      url: this.mediaService.getFileUrl(file.filename),
-      filename: file.filename,
-      originalName: file.originalname,
-      size: file.size,
-      mimeType: file.mimetype,
+    const urls = await this.mediaService.uploadFiles(files, 'general');
+    return urls.map((url, i) => ({
+      url,
+      originalName: files[i].originalname,
+      size: files[i].size,
+      mimeType: files[i].mimetype,
     }));
   }
 }

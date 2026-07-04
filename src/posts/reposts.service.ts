@@ -17,6 +17,7 @@ export class RepostsService {
   constructor(
     @InjectRepository(Repost)
     private readonly repostsRepository: Repository<Repost>,
+    @InjectRepository(Post)
     private readonly postsRepository: Repository<Post>,
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,

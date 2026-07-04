@@ -16,9 +16,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { memoryStorage } from 'multer';
 import {
   ApiTags,
   ApiOperation,
@@ -33,14 +31,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { MediaService } from '../media/media.service';
 import { User } from '../users/entities/user.entity';
-
-const postImageStorage = diskStorage({
-  destination: './uploads/posts',
-  filename: (_req, file, callback) => {
-    const uniqueName = `post_${uuidv4()}${extname(file.originalname)}`;
-    callback(null, uniqueName);
-  },
-});
 
 const imageFileFilter = (
   _req: any,
@@ -77,7 +67,7 @@ export class PostsController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FilesInterceptor('images', 10, {
-      storage: postImageStorage,
+      storage: memoryStorage(),
       fileFilter: imageFileFilter,
       limits: { fileSize: 5 * 1024 * 1024 },
     }),
@@ -87,9 +77,9 @@ export class PostsController {
     @Body() createPostDto: CreatePostDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    const imageUrls = files?.map((file) =>
-      this.mediaService.getFileUrl(`posts/${file.filename}`),
-    ) || [];
+    const imageUrls = files?.length
+      ? await this.mediaService.uploadFiles(files, 'posts')
+      : [];
 
     return this.postsService.create(user.id, {
       ...createPostDto,
