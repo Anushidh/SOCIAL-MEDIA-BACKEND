@@ -30,7 +30,7 @@ export class EmailService {
 
     try {
       await this.transporter.sendMail({
-        from: this.configService.get<string>('SMTP_FROM', '"Social Media App" <noreply@app.com>'),
+        from: this.configService.get<string>('SMTP_FROM', '"ConnectSphere" <noreply@app.com>'),
         to: email,
         subject: 'Verify your email address',
         html: `
@@ -38,7 +38,7 @@ export class EmailService {
             <h2>Welcome, ${username}!</h2>
             <p>Please verify your email address by clicking the button below:</p>
             <a href="${verificationUrl}" 
-               style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">
+               style="display: inline-block; padding: 12px 24px; background-color: #0f766e; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">
               Verify Email
             </a>
             <p>If the button doesn't work, copy and paste this link into your browser:</p>
@@ -60,7 +60,7 @@ export class EmailService {
   ): Promise<void> {
     try {
       await this.transporter.sendMail({
-        from: this.configService.get<string>('SMTP_FROM', '"Social Media App" <noreply@app.com>'),
+        from: this.configService.get<string>('SMTP_FROM', '"ConnectSphere" <noreply@app.com>'),
         to: email,
         subject: 'Your verification code',
         html: `
@@ -91,7 +91,7 @@ export class EmailService {
 
     try {
       await this.transporter.sendMail({
-        from: this.configService.get<string>('SMTP_FROM', '"Social Media App" <noreply@app.com>'),
+        from: this.configService.get<string>('SMTP_FROM', '"ConnectSphere" <noreply@app.com>'),
         to: email,
         subject: 'Reset your password',
         html: `
@@ -99,7 +99,7 @@ export class EmailService {
             <h2>Password Reset Request</h2>
             <p>Hi ${username}, we received a request to reset your password.</p>
             <a href="${resetUrl}" 
-               style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">
+               style="display: inline-block; padding: 12px 24px; background-color: #0f766e; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">
               Reset Password
             </a>
             <p>If the button doesn't work, copy and paste this link into your browser:</p>

@@ -59,8 +59,8 @@ async function bootstrap() {
   const isProduction = configService.get<string>('NODE_ENV') === 'production';
   if (!isProduction) {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle('Social Media API')
-      .setDescription('Social media application REST API documentation')
+      .setTitle('ConnectSphere API')
+      .setDescription('ConnectSphere social media REST API documentation')
       .setVersion('1.0')
       .addBearerAuth()
       .addTag('Auth', 'Authentication endpoints')
