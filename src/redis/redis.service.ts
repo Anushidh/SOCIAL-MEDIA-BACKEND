@@ -10,15 +10,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
-    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
-
     this.client = new Redis({
       host: this.configService.get<string>('REDIS_HOST', 'localhost'),
       port: this.configService.get<number>('REDIS_PORT', 6379),
       password: this.configService.get<string>('REDIS_PASSWORD') || undefined,
       db: this.configService.get<number>('REDIS_DB', 0),
-      // Redis Cloud requires TLS in production
-      ...(isProduction && { tls: {} }),
     });
 
     this.client.on('connect', () => this.logger.log('Redis connected'));
