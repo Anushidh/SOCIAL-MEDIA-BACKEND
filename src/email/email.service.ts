@@ -1,23 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
+import * as sgMail from '@sendgrid/mail';
 
 @Injectable()
 export class EmailService {
-  private transporter: Transporter;
   private readonly logger = new Logger(EmailService.name);
+  private readonly from: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com'),
-      port: this.configService.get<number>('SMTP_PORT', 587),
-      secure: false,
-      auth: {
-        user: this.configService.get<string>('SMTP_USER'),
-        pass: this.configService.get<string>('SMTP_PASS'),
-      },
-    });
+    sgMail.setApiKey(this.configService.get<string>('SENDGRID_API_KEY', ''));
+    this.from = this.configService.get<string>(
+      'SMTP_FROM',
+      'ConnectSphere <anushidh101@gmail.com>',
+    );
   }
 
   async sendOtpEmail(
@@ -26,8 +21,8 @@ export class EmailService {
     otp: string,
   ): Promise<void> {
     try {
-      await this.transporter.sendMail({
-        from: this.configService.get<string>('SMTP_FROM', '"ConnectSphere" <noreply@connectsphere.app>'),
+      await sgMail.send({
+        from: this.from,
         to: email,
         subject: 'Your verification code',
         html: `
@@ -57,8 +52,8 @@ export class EmailService {
     const verificationUrl = `${appUrl}/auth/verify-email?token=${token}`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.configService.get<string>('SMTP_FROM', '"ConnectSphere" <noreply@connectsphere.app>'),
+      await sgMail.send({
+        from: this.from,
         to: email,
         subject: 'Verify your email address',
         html: `
@@ -90,8 +85,8 @@ export class EmailService {
     const resetUrl = `${appUrl}/auth/reset-password?token=${token}`;
 
     try {
-      await this.transporter.sendMail({
-        from: this.configService.get<string>('SMTP_FROM', '"ConnectSphere" <noreply@connectsphere.app>'),
+      await sgMail.send({
+        from: this.from,
         to: email,
         subject: 'Reset your password',
         html: `
