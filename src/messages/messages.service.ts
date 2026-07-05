@@ -127,6 +127,8 @@ export class MessagesService {
 
     const message = this.messagesRepository.create({
       content: createMessageDto.content,
+      mediaUrl: createMessageDto.mediaUrl,
+      mediaType: createMessageDto.mediaType,
       senderId,
       conversationId: createMessageDto.conversationId,
     });

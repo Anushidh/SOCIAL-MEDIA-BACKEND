@@ -1,11 +1,22 @@
-import { IsString, IsUUID, MaxLength } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsUUID, MaxLength, IsOptional, ValidateIf } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateMessageDto {
-  @ApiProperty({ example: 'Hey, how are you?' })
+  @ApiPropertyOptional({ example: 'Hey, how are you?' })
+  @ValidateIf((o) => !o.mediaUrl)
   @IsString()
   @MaxLength(2000)
-  content: string;
+  content?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  mediaUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  mediaType?: string;
 
   @ApiProperty({ description: 'Conversation ID' })
   @IsUUID()

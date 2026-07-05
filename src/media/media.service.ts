@@ -8,6 +8,10 @@ export class MediaService {
     'image/png',
     'image/gif',
     'image/webp',
+    'video/mp4',
+    'video/webm',
+    'video/ogg',
+    'video/quicktime',
   ];
 
   constructor(private readonly storageFactory: StorageFactoryService) {}

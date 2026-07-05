@@ -7,11 +7,13 @@ import { MessagesGateway } from './messages.gateway';
 import { Message } from './entities/message.entity';
 import { Conversation } from './entities/conversation.entity';
 import { User } from '../users/entities/user.entity';
+import { MediaModule } from '../media/media.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Message, Conversation, User]),
     JwtModule.register({}),
+    MediaModule,
   ],
   controllers: [MessagesController],
   providers: [MessagesService, MessagesGateway],

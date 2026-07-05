@@ -93,13 +93,15 @@ export class MessagesGateway
   @SubscribeMessage('sendMessage')
   async handleMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { content: string; conversationId: string },
+    @MessageBody() data: { content?: string; mediaUrl?: string; mediaType?: string; conversationId: string },
   ) {
     const userId = client.data?.userId as string;
 
     try {
       const message = await this.messagesService.sendMessage(userId, {
         content: data.content,
+        mediaUrl: data.mediaUrl,
+        mediaType: data.mediaType,
         conversationId: data.conversationId,
       });
 

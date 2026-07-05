@@ -14,8 +14,14 @@ export class Message {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   content: string;
+
+  @Column({ name: 'media_url', nullable: true })
+  mediaUrl: string;
+
+  @Column({ name: 'media_type', nullable: true })
+  mediaType: string;
 
   @Column({ name: 'sender_id' })
   senderId: string;

@@ -11,9 +11,13 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { MessagesService } from './messages.service';
+import { MediaService } from '../media/media.service';
 import { CreateMessageDto, CreateConversationDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -24,7 +28,10 @@ import { User } from '../users/entities/user.entity';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class MessagesController {
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(
+    private readonly messagesService: MessagesService,
+    private readonly mediaService: MediaService,
+  ) {}
 
   // ─── Conversations ─────────────────────────────────────────────────────────
 
@@ -110,5 +117,33 @@ export class MessagesController {
     @CurrentUser() user: User,
   ) {
     return this.messagesService.deleteMessage(messageId, user.id);
+  }
+
+  @Post('media')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+    }),
+  )
+  @ApiOperation({ summary: 'Upload media attachment for a message' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  async uploadMedia(
+    @CurrentUser() user: User,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const mediaUrl = await this.mediaService.uploadFile(file, 'messages');
+    let mediaType = 'file';
+    if (file.mimetype.startsWith('image/')) mediaType = 'image';
+    else if (file.mimetype.startsWith('video/')) mediaType = 'video';
+    
+    return { mediaUrl, mediaType };
   }
 }
