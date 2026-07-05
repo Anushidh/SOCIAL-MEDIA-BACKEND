@@ -14,12 +14,13 @@ export class EmailService {
       port: this.configService.get<number>('SMTP_PORT', 587),
       secure: false,
       // Force IPv4 — Render free tier blocks outbound IPv6
-      family: 4,
+      tls: { rejectUnauthorized: false },
+      socketOptions: { family: 4 },
       auth: {
         user: this.configService.get<string>('SMTP_USER'),
         pass: this.configService.get<string>('SMTP_PASS'),
       },
-    });
+    } as any);
   }
 
   async sendVerificationEmail(
