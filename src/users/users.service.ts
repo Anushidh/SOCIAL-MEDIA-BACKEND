@@ -63,7 +63,13 @@ export class UsersService {
   async update(userId: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findById(userId);
 
-    Object.assign(user, updateUserDto);
+    // Only assign defined properties to avoid overwriting with undefined
+    Object.keys(updateUserDto).forEach((key) => {
+      if (updateUserDto[key as keyof UpdateUserDto] !== undefined) {
+        (user as any)[key] = updateUserDto[key as keyof UpdateUserDto];
+      }
+    });
+
     return this.usersRepository.save(user);
   }
 

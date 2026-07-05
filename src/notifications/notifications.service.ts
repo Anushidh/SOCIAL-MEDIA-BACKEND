@@ -162,7 +162,12 @@ export class NotificationsService {
   ): Promise<NotificationPreference> {
     let preferences = await this.getPreferences(userId);
 
-    Object.assign(preferences, updateDto);
+    Object.keys(updateDto).forEach((key) => {
+      if (updateDto[key as keyof UpdateNotificationPreferencesDto] !== undefined) {
+        (preferences as any)[key] = updateDto[key as keyof UpdateNotificationPreferencesDto];
+      }
+    });
+
     return this.preferencesRepository.save(preferences);
   }
 

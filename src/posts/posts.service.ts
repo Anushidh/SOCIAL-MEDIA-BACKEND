@@ -199,8 +199,16 @@ export class PostsService {
 
   async update(id: string, userId: string, updatePostDto: UpdatePostDto): Promise<Post> {
     const post = await this.findById(id, userId);
-    if (post.authorId !== userId) throw new ForbiddenException('You can only edit your own posts');
-    Object.assign(post, updatePostDto);
+    if (post.author.id !== userId) {
+      throw new ForbiddenException('You can only edit your own posts');
+    }
+
+    Object.keys(updatePostDto).forEach((key) => {
+      if (updatePostDto[key as keyof UpdatePostDto] !== undefined) {
+        (post as any)[key] = updatePostDto[key as keyof UpdatePostDto];
+      }
+    });
+
     return this.postsRepository.save(post);
   }
 
